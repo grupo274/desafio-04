@@ -1,0 +1,5 @@
+crewai[tools]
+pandas
+langchain-openai
+langchain-google-genai
+openpyxl # ler arquivos XLSX
