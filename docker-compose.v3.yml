@@ -1,0 +1,110 @@
+
+services:
+  # Servidor MCP existente
+  mcp-provider:
+    build: ./mcp_provider
+    container_name: mcp_provider
+    ports:
+      - "8001:8000"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Serviço Ollama separado
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama_service
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+      - OLLAMA_KEEP_ALIVE=24h
+      - OLLAMA_MAX_LOADED_MODELS=2
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+        reservations:
+          memory: 4G
+
+  # App principal com múltiplos LLMs
+  crew-app:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: crew_app
+    depends_on:
+      mcp-provider:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./:/app
+      - ./dados:/app/dados
+      - ./logs:/app/logs
+      - ./models:/models
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/app/src
+      
+      # Configuração de LLM (prioridade)
+      - LLM_PROVIDER=${LLM_PROVIDER:-ollama}
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - DEFAULT_MODEL=llama3.2
+      
+      # Fallback para APIs externas
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      
+      # Configurações da aplicação
+      - DEBUG=${DEBUG:-false}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - FORCE_MOCK_LLM=${FORCE_MOCK_LLM:-false}
+      
+    command: ["python", "main.py"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health')"]
+      interval: 60s
+      timeout: 30s
+      retries: 3
+      start_period: 120s
+
+  # Serviço adicional para desenvolvimento/debug
+  dev-tools:
+    build: .
+    container_name: crew_dev_tools
+    depends_on:
+      - crew-app
+    volumes:
+      - ./:/app
+      - ./dados:/app/dados
+    environment:
+      - PYTHONPATH=/app/src
+    command: ["python", "main_dev.py"]
+    profiles:
+      - dev  # Só ativa com docker-compose --profile dev up
+
+volumes:
+  ollama_data:
+    driver: local
+
+networks:
+  default:
+    name: crew_network
+    driver: bridge

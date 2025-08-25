@@ -1,0 +1,19 @@
+extrair_dados:
+  description: "Extrair arquivos XLSX/CSV do ZIP e converter em DataFrames."
+  expected_output: "Lista de DataFrames carregados."
+  agent: extrator
+
+normalizar_dados:
+  description: "Aplicar regras de normalização vindas da API."
+  expected_output: "DataFrames normalizados prontos para análise."
+  agent: normalizador
+
+aplicar_regras:
+  description: "Realizar cálculos e agregações."
+  expected_output: "DataFrame com totais e cálculos."
+  agent: contador
+
+auditar:
+  description: "Auditar os resultados e verificar consistência."
+  expected_output: "Relatório de auditoria dos dados processados."
+  agent: auditor

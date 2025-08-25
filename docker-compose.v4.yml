@@ -1,0 +1,41 @@
+services:
+  mcp-provider:
+    build: ./mcp_provider
+    container_name: mcp_provider
+    ports:
+      - "8000:8000"
+
+  crew-vr-app:
+    build: .
+    container_name: crew_app
+    depends_on:
+      - mcp-provider
+    environment:
+      - PYTHONPATH=/app/src
+      - LLM_PROVIDER=openai     
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - LLAMA_MODEL_PATH=/models/llama-3.1-8b-instruct.Q4_K_M.gguf
+    volumes:
+      - ./dados:/app/dados
+      - ./models:/models
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ./models:/models
+    entrypoint: >
+      sh -c "
+        ollama serve &
+        sleep 5 &&
+        if ! ollama list | grep -q custom-llama; then
+          ollama create custom-llama -f /models/Modelfile.custom
+        fi &&
+        if ! ollama list | grep -q light-llama; then
+          ollama create light-llama -f /models/Modelfile.light
+        fi &&
+        wait
+      " 

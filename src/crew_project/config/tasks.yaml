@@ -1,0 +1,20 @@
+# config/tasks.yaml
+extracao:
+  agent: "extrator"
+  description: "Extrair dados do arquivo ZIP fornecido e preparar amostras para análise"
+  expected_output: "Relatório com estrutura dos dados extraídos e principais estatísticas"
+
+normalizacao:
+  agent: "normalizador"
+  description: "Aplicar regras de negócio aos dados extraídos conforme APIs de regras"
+  expected_output: "Dados normalizados seguindo padrões trabalhistas e contábeis"
+
+agrupamento:
+  agent: "contador"
+  description: "Agrupar dados por critérios relevantes e gerar análises"
+  expected_output: "Relatório com dados agrupados e análises estatísticas"
+
+auditoria:
+  agent: "auditor"
+  description: "Verificar qualidade e consistência de todos os dados processados"
+  expected_output: "Relatório de auditoria com validações e recomendações"

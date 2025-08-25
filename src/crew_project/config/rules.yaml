@@ -1,0 +1,12 @@
+obrigatorias:
+  - CPF
+  - Nome
+  - Valor_VR
+  - Data
+
+regras:
+  - "Se CPF estiver vazio, marcar registro como inválido"
+  - "Se Nome estiver ausente, sinalizar erro crítico"
+  - "Se Valor_VR for menor ou igual a zero, sinalizar erro"
+  - "Aplicar desconto de até 20% sobre o VR conforme CLT Art. 458"
+  - "Valores devem ser somados por colaborador no mês"

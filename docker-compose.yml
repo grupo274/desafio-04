@@ -1,0 +1,27 @@
+services:
+  mcp-provider:
+    build: ./mcp_provider
+    container_name: mcp_provider
+    ports:
+      - "8000:8000"
+
+  crew-vr-app:
+    build: .
+    container_name: crew_app
+    depends_on:
+      - mcp-provider
+    env_file:
+      - .env
+    environment:
+      - PYTHONPATH=/app/src
+      - OPENAI_API_KEY="${OPENAI_API_KEY}"
+      - OPENAI_MODEL="${OPENAI_MODEL}"
+      - GOOGLE_API_KEY="${GOOGLE_API_KEY}"
+      - GOOGLE_MODEL="${GOOGLE_MODEL}"
+      - GROQ_API_KEY="${GROQ_API_KEY}"
+      - GROQ_MODEL="${GROQ_MODEL}"
+
+
+    volumes:
+      - ./dados:/app/dados
+      - ./models:/models

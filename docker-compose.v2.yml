@@ -1,0 +1,75 @@
+
+services:
+  # Servidor MCP existente
+  mcp-provider:
+    build: ./mcp_provider
+    container_name: mcp_provider
+    ports:
+      - "8001:8000"
+
+  # Serviço Ollama separado
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama_service
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # App original com OpenAI/Google
+  crew-vr-app:
+    build: .
+    container_name: crew_app
+    depends_on:
+      - mcp-provider
+    ports:
+      - "8002:8000"
+    environment:
+      - PYTHONPATH=/app/src
+      - LLM_PROVIDER=openai     
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - LLAMA_MODEL_PATH=/models/llama-3.1-8b-instruct.Q4_K_M.gguf
+    volumes:
+      - ./dados:/app/dados
+      - ./models:/models
+
+  # App com Ollama (conecta ao serviço separado)
+  crew-app:
+    build: .
+    container_name: crew_app_ollama
+    depends_on:
+      - mcp-provider
+      - ollama
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./:/app
+      - ./dados:/app/dados
+    environment:
+      - PYTHONUNBUFFERED=1
+      - OLLAMA_BASE_URL=http://ollama:11434  # Conecta ao serviço ollama
+      - PYTHONPATH=/app/src
+      # Fallback para APIs externas se necessário
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+    command: ["python", "main.py"]  # Comando mais simples
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://ollama:11434/api/version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  ollama_data:
+    driver: local
